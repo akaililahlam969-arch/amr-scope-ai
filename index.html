@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMR-Scope AI</title>
+<style>
+  :root{--blue:#1a56d6;--ink:#10213f;--muted:#5b6b86;--bg:#eaf1fb;--card:#fff;--ok:#22a05a;--mid:#f08c00;--bad:#d93636;--warn:#fff3cd}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:linear-gradient(#f4f8ff,var(--bg));color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  header{text-align:center;padding:18px 12px 6px}
+  header h1{margin:0;font-size:28px;color:var(--blue)}
+  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+  .app{width:100%;max-width:430px;background:var(--card);border-radius:28px;box-shadow:0 10px 40px #1a56d630;margin:12px;overflow:hidden;display:flex;flex-direction:column;min-height:720px}
+  .top{padding:16px 18px 10px;border-bottom:1px solid #eef2f8}
+  .top h2{margin:0;font-size:19px}
+  .top .sub{color:var(--blue);font-size:13px;margin-top:2px}
+  .dots{display:flex;gap:6px;margin-top:8px}.dots i{width:8px;height:8px;border-radius:50%;background:#d3dcec}.dots i.on{background:var(--blue)}
+  .screen{display:none;flex:1;flex-direction:column;padding:14px 18px 18px;gap:12px}
+  .screen.active{display:flex}
+  .viewer{background:#0b1220;border-radius:14px;min-height:300px;display:flex;align-items:center;justify-content:center;color:#cfe0ff;text-align:center;padding:10px;overflow:hidden;position:relative}
+  .viewer img{max-width:100%;max-height:420px;border-radius:10px;display:block}
+  .row{display:flex;gap:10px}
+  button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 14px;font-weight:600}
+  .primary{background:var(--blue);color:#fff;flex:1}
+  .primary:disabled{opacity:.45;cursor:not-allowed}
+  .ghost{background:#fff;color:var(--blue);border:2px solid var(--blue);flex:1}
+  .link{background:none;color:var(--blue);padding:8px;font-weight:600}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #dfe7f5;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+  .banner{background:var(--warn);border:1px solid #f1d98a;border-radius:12px;padding:12px;font-size:14px}
+  .banner.ok{background:#e6f6ec;border-color:#b6e2c6}
+  .disk{display:grid;grid-template-columns:1fr 84px 54px;gap:8px;align-items:center;padding:8px;border:1px solid #e3eaf6;border-radius:12px}
+  .disk.unc{border-color:#f0b429;background:#fffaf0}
+  select,input[type=number],input[type=text]{font:inherit;padding:8px;border:1px solid #cdd8ec;border-radius:8px;width:100%}
+  .conf{font-size:12px;color:var(--muted);text-align:right}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{background:var(--blue);color:#fff;text-align:left;padding:8px}
+  td{padding:8px;border-bottom:1px solid #edf1f8}
+  .tag{display:inline-block;min-width:22px;text-align:center;border-radius:6px;color:#fff;font-weight:700;font-size:12px;padding:2px 6px;margin-right:6px}
+  .S{background:var(--ok)}.I{background:var(--mid)}.R{background:var(--bad)}
+  .bar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:#eef2f8}
+  .bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+  .resbox{background:#dbe8fb;border-radius:12px;padding:12px;font-weight:600}
+  .resbox small{display:inline-block;background:var(--ok);color:#fff;padding:2px 8px;border-radius:6px;margin-top:6px}
+  .err{color:var(--bad);font-size:14px}
+  .spin{width:34px;height:34px;border:4px solid #bcd0f5;border-top-color:var(--blue);border-radius:50%;animation:s 1s linear infinite;margin:0 auto 10px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  footer{color:var(--muted);font-size:12px;padding:6px 12px 20px;text-align:center}
+  @media print{body{background:#fff}header,footer,.top,#s1,#s2,#s3,.noprint{display:none!important}.app{box-shadow:none;max-width:none;margin:0}#s4{display:flex!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>AMR-Scope AI</h1>
+  <p>Résistance aux antibiotiques — analyse d'image en 4 étapes</p>
+</header>
+
+<main class="app">
+  <div class="top">
+    <h2 id="title">1 • Acquisition de l'image</h2>
+    <div class="sub" id="sub">Étape 1 sur 4</div>
+    <div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></div>
+  </div>
+
+  <!-- ÉTAPE 1 -->
+  <section class="screen active" id="s1">
+    <div class="viewer" id="preview"><div>📷<br>Placez la boîte de Pétri dans le cadre<br><small>ou choisissez une image dans la galerie</small></div></div>
+    <input id="file" type="file" accept="image/*" capture="environment" hidden>
+    <input id="gallery" type="file" accept="image/*" hidden>
+    <div class="row">
+      <button class="ghost" id="btnGallery">🖼 Galerie</button>
+      <button class="ghost" id="btnSample">🧪 Image d'exemple</button>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnCapture">📷 Capturer l'image</button>
+    </div>
+    <button class="link" id="btnHist">🗂 Historique des analyses</button>
+    <div class="err" id="err1"></div>
+  </section>
+
+  <!-- ÉTAPE 2 -->
+  <section class="screen" id="s2">
+    <div><span class="badge">🟢 OpenCV • Détection activée</span></div>
+    <div class="viewer" id="annot"><div><div class="spin"></div>Analyse en cours…</div></div>
+    <div class="banner ok" id="sum2">—</div>
+    <button class="primary" id="btnToVerify" disabled>Continuer vers vérification →</button>
+  </section>
+
+  <!-- ÉTAPE 3 -->
+  <section class="screen" id="s3">
+    <div class="banner" id="warn3"></div>
+    <div id="disks"></div>
+    <label style="font-size:14px">Site du prélèvement (facultatif)<input type="text" id="site" placeholder="ex. Hôpital … • Ville"></label>
+    <label id="confirmWrap" style="display:flex;gap:8px;align-items:center;font-size:15px">
+      <input type="checkbox" id="confirm"> <span>Confirmer la mesure manuelle</span>
+    </label>
+    <div class="row">
+      <button class="ghost" id="btnRe">Ré-analyse</button>
+      <button class="primary" id="btnValidate">✔ Valider la mesure</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted)">ⓘ Un expert doit valider avant enregistrement.</div>
+  </section>
+
+  <!-- ÉTAPE 4 -->
+  <section class="screen" id="s4">
+    <div class="resbox">Résultats enregistrés • Séquence # <span id="seq"></span><br><small>QC validé</small></div>
+    <h3 style="margin:4px 0">Diamètres d'inhibition (mm)</h3>
+    <table><thead><tr><th>Antibiotique</th><th>Diamètre</th><th>Interprétation</th></tr></thead><tbody id="tbody"></tbody></table>
+    <h4 style="margin:6px 0 0">Distribution des résultats</h4>
+    <div class="bar" id="dist"></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>Sensible</span><span>Intermédiaire</span><span>Résistant</span></div>
+    <div id="siteShow" style="font-size:14px"></div>
+    <div style="font-size:12px;color:var(--muted)">Seuils de démonstration — à valider selon EUCAST (espèce, version du tableau).</div>
+    <div class="row noprint">
+      <button class="ghost" id="btnNew">Nouvelle analyse</button>
+      <button class="primary" id="btnPdf">⬇ Exporter le rapport PDF</button>
+    </div>
+  </section>
+
+  <!-- HISTORIQUE -->
+  <section class="screen" id="s5">
+    <div id="histList" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="ghost" id="btnHistBack">← Retour</button>
+  </section>
+</main>
+<footer>AMR-Scope AI • prototype hackathon • outil d'aide à la décision, validation par un expert requise</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const TITLES = ["1 • Acquisition de l'image","2 • Analyse de l'image","3 • Vérification et contrôle qualité","4 • Enregistrement et visualisation","Historique des analyses"];
+let BP = {}, file = null, result = null, final = [];
+
+if (location.protocol === 'file:') {
+  $('#err1').textContent = 'Page ouverte comme fichier : l\'analyse ne marchera pas. Lancez « python app.py » puis ouvrez http://localhost:5000';
+}
+fetch('/api/breakpoints').then(r => r.json()).then(j => BP = j).catch(() => {});
+
+function go(n){
+  if (n !== 1) stopCam();
+  document.querySelectorAll('.screen').forEach((e,i)=>e.classList.toggle('active', i===n-1));
+  $('#title').textContent = TITLES[n-1];
+  $('#sub').textContent = n <= 4 ? `Étape ${n} sur 4` : 'Analyses enregistrées sur ce serveur';
+  $('#dots').style.visibility = n <= 4 ? 'visible' : 'hidden';
+  document.querySelectorAll('#dots i').forEach((d,i)=>d.classList.toggle('on', i<n));
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function setFile(f){
+  file = f; $('#err1').textContent = '';
+  const url = URL.createObjectURL(f);
+  $('#preview').innerHTML = `<img src="${url}" alt="Aperçu">`;
+  run();
+}
+// --- Caméra : téléphone = appareil photo natif ; PC = webcam intégrée ---
+let stream = null;
+const isMobile = /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent);
+function stopCam(){
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; $('#btnCapture').textContent = '📷 Capturer l\'image'; }
+}
+async function openCam(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1920}}});
+  }catch(e){
+    $('#err1').textContent = 'Caméra inaccessible (' + (e.name || e.message) + '). Choisissez une image via « Galerie ».';
+    return;
+  }
+  $('#err1').textContent = '';
+  $('#preview').innerHTML = '<video id="cam" autoplay playsinline muted style="max-width:100%;max-height:420px;border-radius:10px"></video>';
+  $('#cam').srcObject = stream;
+  $('#btnCapture').textContent = '📸 Prendre la photo';
+}
+function shoot(){
+  const v = $('#cam');
+  if (!v || !v.videoWidth) return;
+  const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  c.toBlob(b => { stopCam(); setFile(new File([b], 'capture.jpg', {type:'image/jpeg'})); }, 'image/jpeg', 0.92);
+}
+$('#btnCapture').onclick = () => {
+  if (stream) return shoot();
+  if (isMobile || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return $('#file').click();
+  openCam();
+};
+$('#btnGallery').onclick = () => $('#gallery').click();
+$('#file').onchange = e => e.target.files[0] && setFile(e.target.files[0]);
+$('#gallery').onchange = e => e.target.files[0] && setFile(e.target.files[0]);
+$('#btnSample').onclick = async () => {
+  const b = await (await fetch('/static/sample_antibiogramme.jpg')).blob();
+  setFile(new File([b], 'exemple.jpg', {type:'image/jpeg'}));
+};
+
+async function run(){
+  go(2);
+  $('#annot').innerHTML = '<div><div class="spin"></div>Analyse en cours…</div>';
+  $('#btnToVerify').disabled = true;
+  const fd = new FormData(); fd.append('image', file);
+  try{
+    const r = await fetch('/api/analyze', {method:'POST', body:fd});
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error || 'Erreur serveur');
+    result = j;
+    $('#annot').innerHTML = `<img src="${j.annotated}" alt="Image annotée">`;
+    const n = j.disk_count;
+    $('#sum2').className = 'banner' + (n && j.plate_detected ? ' ok' : '');
+    $('#sum2').textContent = n
+      ? `${n} disque${n>1?'s':''} détecté${n>1?'s':''} • ${n} antibiotique${n>1?'s':''} identifié${n>1?'s':''} • échelle ${j.scale_px_per_mm} px/mm`
+      : 'Aucun disque détecté — reprenez la photo (boîte bien cadrée, bon éclairage).';
+    $('#btnToVerify').disabled = !n;
+  }catch(e){
+    go(1);
+    $('#err1').textContent = (e.message === 'Failed to fetch')
+      ? 'Serveur injoignable. Lancez « python app.py » puis ouvrez http://localhost:5000 (ne pas ouvrir le fichier index.html directement).'
+      : 'Échec de l\'analyse : ' + e.message;
+  }
+}
+
+function interp(label, mm){
+  const b = BP[label]; if(!b) return '?';
+  return mm >= b.s ? 'S' : (mm < b.r ? 'R' : 'I');
+}
+const FULL = {S:'Sensible', I:'Intermédiaire', R:'Résistant'};
+
+$('#btnToVerify').onclick = () => {
+  const d = $('#disks'); d.innerHTML = '';
+  result.disks.forEach(k => {
+    const el = document.createElement('div');
+    el.className = 'disk' + (k.uncertain ? ' unc' : '');
+    el.innerHTML = `
+      <select data-id="${k.id}" class="lab">${Object.keys(BP).map(l=>`<option ${l===k.label?'selected':''}>${l}</option>`).join('')}</select>
+      <input type="number" step="0.1" min="0" max="60" data-id="${k.id}" class="mm" value="${k.diameter_mm}">
+      <div class="conf">${Math.round(k.confidence*100)}%${k.uncertain?' ⚠':''}</div>`;
+    d.appendChild(el);
+  });
+  const unc = result.disks.filter(k => k.uncertain);
+  const w = $('#warn3');
+  if(unc.length || !result.plate_detected){
+    w.className = 'banner';
+    w.innerHTML = `⚠ <b>Mesure incertaine détectée</b><br>${unc.map(k=>`Disque ${k.label} : confiance ${Math.round(k.confidence*100)} %`).join('<br>')}${result.plate_detected?'':'<br>Boîte de Pétri non détectée avec certitude.'}<br><b>Validation humaine requise.</b>`;
+    $('#confirmWrap').style.display = 'flex';
+  } else {
+    w.className = 'banner ok';
+    w.innerHTML = '✔ Toutes les mesures ont une confiance suffisante. Vérifiez les étiquettes puis validez.';
+    $('#confirmWrap').style.display = 'none';
+  }
+  $('#confirm').checked = false;
+  go(3);
+};
+
+$('#btnRe').onclick = () => go(1);
+$('#btnValidate').onclick = async () => {
+  const needs = result.needs_review;
+  if(needs && !$('#confirm').checked){ alert('Veuillez confirmer la mesure manuelle avant de valider.'); return; }
+  final = [...document.querySelectorAll('.disk')].map(el => {
+    const label = el.querySelector('.lab').value;
+    const mm = parseFloat(el.querySelector('.mm').value) || 0;
+    return {label, mm, r: interp(label, mm)};
+  });
+  const labels = final.map(f => f.label);
+  if(new Set(labels).size !== labels.length){ alert('Deux disques portent la même étiquette : corrigez-la.'); return; }
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('results', JSON.stringify(final));
+  fd.append('site', $('#site').value);
+  fd.append('needs_review', needs ? '1' : '0');
+  const btn = $('#btnValidate'); btn.disabled = true;
+  try{
+    const r = await fetch('/api/save', {method:'POST', body:fd});
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error || 'Erreur serveur');
+    render4(j.seq); $('#siteShow').textContent = $('#site').value ? '📍 Site : ' + $('#site').value : '';
+    go(4);
+  }catch(e){
+    alert('Enregistrement impossible : ' + e.message);
+  }finally{ btn.disabled = false; }
+};
+
+async function showHistory(){
+  go(5);
+  const box = $('#histList');
+  box.innerHTML = '<div style="text-align:center;color:var(--muted)">Chargement…</div>';
+  try{
+    const list = await (await fetch('/api/history')).json();
+    if(!list.length){ box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Aucune analyse enregistrée pour le moment.</div>'; return; }
+    box.innerHTML = '';
+    list.forEach(a => {
+      const c = {S:0,I:0,R:0}; a.results.forEach(x => c[x.r] !== undefined && c[x.r]++);
+      const d = new Date(a.created_at).toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'});
+      const el = document.createElement('div');
+      el.style.cssText = 'border:1px solid #e3eaf6;border-radius:12px;padding:10px;cursor:pointer';
+      const rows = a.results.map(x => `<tr><td>${esc(x.label)}</td><td>${x.mm} mm</td><td><span class="tag ${x.r}">${x.r}</span></td></tr>`).join('');
+      el.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px"><b>${a.seq}</b><span style="color:var(--muted);font-size:13px">${d}</span></div>
+        <div style="font-size:13px;color:var(--muted)">${a.site ? esc(a.site) + ' • ' : ''}<span class="tag S">${c.S}</span><span class="tag I">${c.I}</span><span class="tag R">${c.R}</span>${a.needs_review ? ' ⚠ validé manuellement' : ''}</div>
+        <div class="det" style="display:none;margin-top:8px">${a.has_image ? `<img src="/api/image/${a.id}" style="width:100%;border-radius:8px;margin-bottom:8px">` : ''}<table><tbody>${rows}</tbody></table></div>`;
+      el.onclick = () => { const x = el.querySelector('.det'); x.style.display = x.style.display === 'none' ? 'block' : 'none'; };
+      box.appendChild(el);
+    });
+  }catch(e){ box.innerHTML = '<div class="err">Impossible de charger l\'historique.</div>'; }
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+$('#btnHist').onclick = showHistory;
+$('#btnHistBack').onclick = () => go(1);
+
+function render4(seq){
+  $('#seq').textContent = seq;
+  $('#tbody').innerHTML = final.map(f => `<tr><td>${f.label}</td><td>${f.mm.toFixed(0)} mm</td><td><span class="tag ${f.r}">${f.r}</span>${FULL[f.r]||'—'}</td></tr>`).join('');
+  const c = {S:0,I:0,R:0}; final.forEach(f => c[f.r]!==undefined && c[f.r]++);
+  const tot = final.length || 1;
+  $('#dist').innerHTML = ['S','I','R'].filter(k=>c[k]).map(k=>`<div class="${k}" style="width:${c[k]/tot*100}%">${c[k]}</div>`).join('');
+}
+$('#btnPdf').onclick = () => window.print();
+$('#btnNew').onclick = () => { file = null; result = null; $('#site').value = ''; $('#preview').innerHTML = '<div>📷<br>Placez la boîte de Pétri dans le cadre</div>'; go(1); };
+</script>
+</body>
+</html>
