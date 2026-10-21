@@ -130,6 +130,19 @@ const $ = s => document.querySelector(s);
 const TITLES = ["1 • Acquisition de l'image","2 • Analyse de l'image","3 • Vérification et contrôle qualité","4 • Enregistrement et visualisation","Historique des analyses"];
 let BP = {}, file = null, result = null, final = [];
 
+// Identifiant anonyme du visiteur : chacun ne voit que son propre historique
+let _cid = null;
+function cid(){
+  if (_cid) return _cid;
+  try { _cid = localStorage.getItem('amr_cid'); } catch(e) {}
+  if (!_cid) {
+    _cid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+         : Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    try { localStorage.setItem('amr_cid', _cid); } catch(e) {}
+  }
+  return _cid;
+}
+
 if (location.protocol === 'file:') {
   $('#err1').textContent = 'Page ouverte comme fichier : l\'analyse ne marchera pas. Lancez « python app.py » puis ouvrez http://localhost:5000';
 }
@@ -261,6 +274,7 @@ $('#btnValidate').onclick = async () => {
   fd.append('image', file);
   fd.append('results', JSON.stringify(final));
   fd.append('site', $('#site').value);
+  fd.append('client', cid());
   fd.append('needs_review', needs ? '1' : '0');
   const btn = $('#btnValidate'); btn.disabled = true;
   try{
@@ -279,7 +293,7 @@ async function showHistory(){
   const box = $('#histList');
   box.innerHTML = '<div style="text-align:center;color:var(--muted)">Chargement…</div>';
   try{
-    const list = await (await fetch('/api/history')).json();
+    const list = await (await fetch('/api/history?c=' + encodeURIComponent(cid()))).json();
     if(!list.length){ box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Aucune analyse enregistrée pour le moment.</div>'; return; }
     box.innerHTML = '';
     list.forEach(a => {
@@ -290,7 +304,7 @@ async function showHistory(){
       const rows = a.results.map(x => `<tr><td>${esc(x.label)}</td><td>${x.mm} mm</td><td><span class="tag ${x.r}">${x.r}</span></td></tr>`).join('');
       el.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px"><b>${a.seq}</b><span style="color:var(--muted);font-size:13px">${d}</span></div>
         <div style="font-size:13px;color:var(--muted)">${a.site ? esc(a.site) + ' • ' : ''}<span class="tag S">${c.S}</span><span class="tag I">${c.I}</span><span class="tag R">${c.R}</span>${a.needs_review ? ' ⚠ validé manuellement' : ''}</div>
-        <div class="det" style="display:none;margin-top:8px">${a.has_image ? `<img src="/api/image/${a.id}" style="width:100%;border-radius:8px;margin-bottom:8px">` : ''}<table><tbody>${rows}</tbody></table></div>`;
+        <div class="det" style="display:none;margin-top:8px">${a.has_image ? `<img src="/api/image/${a.id}?c=${encodeURIComponent(cid())}" style="width:100%;border-radius:8px;margin-bottom:8px">` : ''}<table><tbody>${rows}</tbody></table></div>`;
       el.onclick = () => { const x = el.querySelector('.det'); x.style.display = x.style.display === 'none' ? 'block' : 'none'; };
       box.appendChild(el);
     });
